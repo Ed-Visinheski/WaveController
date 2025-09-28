@@ -1,0 +1,3 @@
+/Users/EdVisinheski/coding-side-projects/WaveController/build/CMakeFiles/WaveController.dir
+/Users/EdVisinheski/coding-side-projects/WaveController/build/CMakeFiles/edit_cache.dir
+/Users/EdVisinheski/coding-side-projects/WaveController/build/CMakeFiles/rebuild_cache.dir

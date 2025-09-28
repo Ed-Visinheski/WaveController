@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.10)
+project(WaveController)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_library(PORTAUDIO_LIB portaudio PATHS /opt/homebrew/lib)
+find_library(SDL2_LIB SDL2 PATHS /opt/homebrew/lib)
+include_directories(/opt/homebrew/include)
+
+add_executable(WaveController main.cpp)
+target_link_libraries(WaveController PRIVATE ${PORTAUDIO_LIB} ${SDL2_LIB} )
