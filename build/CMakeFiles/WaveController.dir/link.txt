@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/WaveController.dir/main.cpp.o -o WaveController  /opt/homebrew/lib/libportaudio.dylib /opt/homebrew/lib/libSDL2.dylib
