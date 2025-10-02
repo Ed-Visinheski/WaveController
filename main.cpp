@@ -5,6 +5,11 @@
 #include <portaudio.h>
 #include <SDL2/SDL.h>
 #include <mutex>
+#include <thread>
+#include <atomic>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
 
 // Audio parameters
 #define SAMPLE_RATE 44100
@@ -248,6 +253,32 @@ void drawTitle(SDL_Renderer* renderer) {
     }
 }
 
+std::atomic<int> handX(0), handY(0);
+std::atomic<bool> handPinch(false);
+
+void udpListener() {
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(5005);
+    bind(sockfd, (sockaddr*)&addr, sizeof(addr));
+    char buf[64];
+    while (true) {
+        int len = recv(sockfd, buf, sizeof(buf)-1, 0);
+        if (len > 0) {
+            buf[len] = 0;
+            int x, y, pinch = 0;
+            if (sscanf(buf, "%d,%d,%d", &x, &y, &pinch) >= 2) {
+                handX = x;
+                handY = y;
+                handPinch = (pinch == 1);
+            }
+        }
+    }
+    close(sockfd);
+}
+
 int main() {
     // Initialize SDL
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -316,6 +347,10 @@ int main() {
     std::cout << "- Amplitude: 0-1 (volume)" << std::endl;
     std::cout << "Press ESC or close window to exit" << std::endl;
     
+    // Start UDP listener thread
+    std::thread listener(udpListener);
+    listener.detach();
+    
     // Main loop
     bool running = true;
     SDL_Event event;
@@ -352,7 +387,7 @@ int main() {
         
         // Update knobs and sync with audio data
         for(size_t i = 0; i < knobs.size(); i++) {
-            knobs[i].update(mouseX, mouseY, mouseDown);
+            knobs[i].update(handX, handY, handPinch); // Use handPinch instead of mouseDown
             
             // Update audio parameters based on knob values
             switch(i) {
@@ -386,7 +421,26 @@ int main() {
         for(auto& knob : knobs) {
             knob.draw(renderer);
         }
-        
+
+        // Draw hand position indicator (semi-transparent circle)
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        if (handPinch) {
+            SDL_SetRenderDrawColor(renderer, 255, 80, 180, 120); // Pink, alpha=120/255
+        } else {
+            SDL_SetRenderDrawColor(renderer, 0, 200, 255, 100); // Cyan, alpha=100/255
+        }
+        int radius = 25;
+        for (int w = 0; w < radius * 2; w++) {
+            for (int h = 0; h < radius * 2; h++) {
+                int dx = radius - w;
+                int dy = radius - h;
+                if ((dx*dx + dy*dy) <= (radius * radius)) {
+                    SDL_RenderDrawPoint(renderer, handX + dx, handY + dy);
+                }
+            }
+        }
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+
         SDL_RenderPresent(renderer);
         
         SDL_Delay(16); // ~60 FPS
